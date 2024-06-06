@@ -1,80 +1,46 @@
-import { getContext } from "../../extensions.js";
-import { eventSource, event_types } from "../../../script.js";
+import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+import { saveSettingsDebounced } from "../../../../script.js";
+import jimp from 'jimp';
 
-const context = getContext();
+const extensionName = "gif-avatar-extension";
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+const extensionSettings = extension_settings[extensionName];
+const defaultSettings = {};
 
-function handleAvatarUpload(request, response, next) {
-    const path = require('path');
-    const fs = require('fs');
-    const sanitize = require('sanitize-filename');
-    const writeFileAtomicSync = require('write-file-atomic').sync;
-    const { jsonParser, urlencodedParser } = require('../express-common');
-    const { AVATAR_WIDTH, AVATAR_HEIGHT, UPLOADS_PATH } = require('../constants');
-    const { getImages, tryParse } = require('../util');
-    const jimp = require('jimp');
+async function loadSettings() {
+    extension_settings[extensionName] = extension_settings[extensionName] || {};
+    if (Object.keys(extension_settings[extensionName]).length === 0) {
+        Object.assign(extension_settings[extensionName], defaultSettings);
+    }
+}
 
+async function cropGif(pathToUpload, crop) {
+    const rawImg = await jimp.read(pathToUpload);
+    if (typeof crop === 'object' && [crop.x, crop.y, crop.width, crop.height].every(x => typeof x === 'number')) {
+        rawImg.crop(crop.x, crop.y, crop.width, crop.height);
+    }
+    return rawImg;
+}
+
+async function uploadAvatar(request, response) {
     if (!request.file) return response.sendStatus(400);
 
     try {
         const pathToUpload = path.join(UPLOADS_PATH, request.file.filename);
         const crop = tryParse(request.query.crop);
-        const mimeType = request.file.mimetype;
-
-        if (mimeType === 'image/gif') {
-            // Handle GIF uploads
-            const filename = request.body.overwrite_name || `${Date.now()}.gif`;
-            const pathToNewFile = path.join(request.user.directories.avatars, filename);
-            fs.renameSync(pathToUpload, pathToNewFile);
-            return response.send({ path: filename });
-        } else {
-            // Handle other image uploads (PNG)
-            let rawImg = await jimp.read(pathToUpload);
-
-            if (typeof crop == 'object' && [crop.x, crop.y, crop.width, crop.height].every(x => typeof x === 'number')) {
-                rawImg = rawImg.crop(crop.x, crop.y, crop.width, crop.height);
-            }
-
-            const image = await rawImg.cover(AVATAR_WIDTH, AVATAR_HEIGHT).getBufferAsync(jimp.MIME_PNG);
-
-            const filename = request.body.overwrite_name || `${Date.now()}.png`;
-            const pathToNewFile = path.join(request.user.directories.avatars, filename);
-            writeFileAtomicSync(pathToNewFile, image);
-            fs.rmSync(pathToUpload);
-            return response.send({ path: filename });
-        }
+        const croppedImg = await cropGif(pathToUpload, crop);
+        const filename = request.body.overwrite_name || `${Date.now()}.gif`;
+        const pathToNewFile = path.join(request.user.directories.avatars, filename);
+        writeFileAtomicSync(pathToNewFile, await croppedImg.getBufferAsync(jimp.MIME_GIF));
+        fs.rmSync(pathToUpload);
+        return response.send({ path: filename });
     } catch (err) {
         return response.status(400).send('Is not a valid image');
     }
 }
 
-function handleAvatarDisplay() {
-    const avatars = document.querySelectorAll('.avatar img');
-    avatars.forEach(avatar => {
-        const src = avatar.getAttribute('src');
-        if (src.endsWith('.gif')) {
-            avatar.style.objectFit = 'cover';
-        }
-    });
-}
+jQuery(async () => {
+    loadSettings();
+});
 
-function handleAcceptButton() {
-    const acceptButton = document.querySelector('dialogue_popup_ok');
-    acceptButton.addEventListener('click', () => {
-        const avatarToCrop = document.querySelector('#avatarToCrop');
-        const src = avatarToCrop.getAttribute('src');
-        if (src.endsWith('.gif')) {
-            // Ensure the GIF is not converted
-            avatarToCrop.setAttribute('src', src); // Re-apply the src to ensure it's not converted
-        }
-    });
-}
-
-// Hook into the upload endpoint
-eventSource.on(event_types.MESSAGE_RECEIVED, handleAvatarUpload);
-
-// Hook into the avatar display
-window.addEventListener('load', handleAvatarDisplay);
-window.addEventListener('DOMNodeInserted', handleAvatarDisplay);
-window.addEventListener('load', handleAcceptButton);
-
-export { handleAvatarUpload, handleAvatarDisplay, handleAcceptButton };
+export { uploadAvatar };

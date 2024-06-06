@@ -1,13 +1,12 @@
-
 {
-    "display_name": "GIF Avatar Handler",
+    "display_name": "SillyTavern GIF Avatars",
     "loading_order": 1,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "style.css",
-    "author": "Your Name",
+    "author": "@atelier__r",
     "version": "1.0.0",
-    "homePage": "https://github.com/your/plugin",
+    "homePage": "https://github.com/yourusername/sillytavern-gif-avatars",
     "auto_update": true
 }

@@ -1,0 +1,4 @@
+.avatar img {
+    /* Ensure GIFs are displayed properly */
+    image-rendering: auto;
+}

@@ -1,8 +1,7 @@
-
-/* Add any custom styles for your extension here */
-.extension-section {
-    margin: 20px 0;
-}
-.extension-option {
-    margin-bottom: 10px;
+/* Add any necessary styles for your extension here */
+#avatar-container img {
+    max-width: 100px;
+    max-height: 100px;
+    display: block;
+    margin: auto;
 }

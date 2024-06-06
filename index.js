@@ -57,11 +57,24 @@ function handleAvatarDisplay() {
     });
 }
 
+function handleAcceptButton() {
+    const acceptButton = document.querySelector('dialogue_popup_ok');
+    acceptButton.addEventListener('click', () => {
+        const avatarToCrop = document.querySelector('#avatarToCrop');
+        const src = avatarToCrop.getAttribute('src');
+        if (src.endsWith('.gif')) {
+            // Ensure the GIF is not converted
+            avatarToCrop.setAttribute('src', src); // Re-apply the src to ensure it's not converted
+        }
+    });
+}
+
 // Hook into the upload endpoint
 eventSource.on(event_types.MESSAGE_RECEIVED, handleAvatarUpload);
 
 // Hook into the avatar display
 window.addEventListener('load', handleAvatarDisplay);
 window.addEventListener('DOMNodeInserted', handleAvatarDisplay);
+window.addEventListener('load', handleAcceptButton);
 
-export { handleAvatarUpload, handleAvatarDisplay };
+export { handleAvatarUpload, handleAvatarDisplay, handleAcceptButton };

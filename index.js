@@ -1,6 +1,8 @@
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../script.js";
-import jimp from 'jimp';
+import Jimp from 'jimp';
+import GIFEncoder from 'gifencoder';
+import { createCanvas, loadImage } from 'canvas';
 
 const extensionName = "sillytavern-gif-avatars";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -17,11 +19,11 @@ async function loadSettings() {
 
 // Handle avatar upload and crop
 async function handleAvatarUpload(file, crop) {
-    const image = await jimp.read(file);
+    const image = await Jimp.read(file);
     if (crop) {
         image.crop(crop.x, crop.y, crop.width, crop.height);
     }
-    const buffer = await image.getBufferAsync(jimp.MIME_GIF); // Save as GIF
+    const buffer = await image.getBufferAsync(Jimp.MIME_GIF); // Save as GIF
     return buffer;
 }
 
